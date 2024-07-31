@@ -1,0 +1,344 @@
+<!-- ChatGPT Prompt used: "can you give an example of how to create a deck and draw cards using the API at https://deckofcardsapi.com/" -->
+<!-- by Jonathan Stilz -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM + Semantic-UI</title>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"></script>
+    <style>
+        .UI_element {
+            border: 2px solid rgb(48, 44, 44);
+            color: rgb(134, 1, 1);
+            width: 100%;
+        }
+
+        tr {
+            border: 2px solid rgb(48, 44, 44);
+            color: rgb(134, 1, 1);
+            width: 100%;
+            text-align: center;
+            background-color: aliceblue;
+        }
+
+        td {
+            height: 50px;
+            border: 1px solid rgb(71, 28, 28);
+            background-color: antiquewhite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ui segment">
+        <h2 class="ui center aligned header">HiCard</h2>
+        <div id="mainBody" style="width:90%; margin:auto">
+            <div style="background-color: rgb(246, 238, 227);" class="ui segment" id="content">
+                <div id="center" class="ui segment black inverted">
+                    <h3 style=" text-align: center">Deck Stats</h3>
+
+                </div>
+                <table class="UI_element">
+                    <tr>
+                        <th>Deck ID</th>
+                        <th>Remaining Cards</th>
+                        <th>Draw Played</th>
+                        <th>Ties Occurred</th>
+                    </tr>
+                    <tr>
+                        <td id="deckID">No Deck Drawn Yet</td>
+                        <td id=cardsRemaining>0</td>
+                        <td id="drawPlayed">0</td>
+                        <td id="ties">0</td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+        <div class="ui segment">
+            <div class="ui label attached top">Controls</div>
+            <div id="createDeck" class="ui button">Get New Deck</div>
+            <div id="drawCard" class="ui button">Draw Card</div>
+            <div id="shuffle" class="ui button">Shuffle</div>
+        </div>
+        <div class="ui centered cards">
+            <!-- A Single Player's Info and Card.-->
+            <div id="p1Card" class="ui card" style="background-color: lightgray;">
+                <div class="content">
+                    <div class="ui center aligned header" id="p1Name">Player 1</div>
+                </div>
+                <img id="p1CardImage" src="https://deckofcardsapi.com/static/img/back.png">
+                <div class="content">
+                    <div class="header">
+                        <div id="p1Wins" class="center aligned">Wins: 0</div>
+                    </div>
+                </div>
+            </div>
+            <!-- End of a Player -->
+            <!-- A Single Player's Info and Card.-->
+            <div id="p2Card" class="ui card" style="background-color: lightgray;">
+                <div class="content">
+                    <div class="ui center aligned header" id="p2Name">Player 2</div>
+                </div>
+                <img id="p2CardImage" src="https://deckofcardsapi.com/static/img/back.png">
+                <div class="content">
+                    <div class="header">
+                        <div id="p2Wins" class="center aligned">Wins: 0</div>
+                    </div>
+                </div>
+            </div>
+            <!-- End of a Player -->
+        </div>
+        <div class="ui segment">
+            <div class="ui label attached top">Previous Results </div>
+            <div id="scores"></div>
+        </div>
+    </div>
+    <script>
+        // Map events to various elements
+        document.getElementById('createDeck').addEventListener('click', createDeck);
+        document.getElementById('drawCard').addEventListener('click', drawCard);
+        document.getElementById('shuffle').addEventListener('click', shuffleDeck);
+
+
+
+       
+
+        let deckId = '';
+        let cardCount = 0;
+        let ties = 0;
+        let draws = 0;
+        let player1wins = 0;
+        let player2wins = 0;
+
+
+
+        // Disable actions on a semantic-ui button ( with visual indcation )
+        function enableDraw() {
+            document.getElementById('drawCard').classList.remove("disabled");
+        }
+
+        // Enable actions on a semantic-ui button
+        function disableDraw() {
+            document.getElementById('drawCard').classList.add("disabled");
+        }
+
+        function pressedNewDeck() {
+            if (deckId != '') {
+                
+                // Get a new <div>
+                const ALog = document.createElement("div");
+                //get winner
+                let winner = "Draw";
+                
+                if (player1wins > player2wins) {
+                    winner = "Player 1 Victory";
+                }
+                else if (player1wins < player2wins) {
+                    winner = "Player 2 Victory";
+                }
+                
+                // add some content ( as HTML to be parsed ) to a our new <div>
+                ALog.innerHTML = `Deck ID: ${deckId} | Game Result: ${winner} | Scores: Player 1(${player1wins}) Player 2(${player2wins})`;
+                // add div inside existing div...
+                document.getElementById("scores").appendChild(ALog);
+                
+            }
+        }
+
+        function createDeck() {
+            $.ajax({
+                url: 'https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1',
+                method: 'GET',
+                success: function (response) {
+
+                    pressedNewDeck();
+
+                    deckId = response.deck_id;
+                    $('#deckID').text(deckId);
+                    cardCount = 52;
+                    $('#cardsRemaining').text(cardCount);
+
+                    draws = 0;
+                    $('#drawPlayed').text(draws);
+                    player1wins = 0;
+                    $('#p1Wins').text("Wins: " + player1wins);
+                    player2wins = 0;
+                    $('#p2Wins').text("Wins: " + player2wins);
+
+                    ties = 0;
+                    $('#ties').text(ties);
+
+                    //turn draw card on
+                    enableDraw();
+
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error creating deck:', error);
+                }
+            });
+        }
+
+        createDeck();
+
+        function shuffleDeck() {
+            if (!deckId) {
+                console.error('Deck not created yet!');
+                return;
+            }
+            $.ajax({
+                url: 'https://deckofcardsapi.com/api/deck/' + deckId + '/shuffle/',
+                method: 'GET',
+                success: function (response) {
+                    deckId = response.deck_id;
+                    $('#deckID').text(deckId);
+                    cardCount = 52;
+                    $('#cardsRemaining').text(cardCount);
+
+                    draws = 0;
+                    $('#drawPlayed').text(draws);
+                    player1wins = 0;
+                    $('#p1Wins').text("Wins: " + player1wins);
+                    player2wins = 0;
+                    $('#p2Wins').text("Wins: " + player2wins);
+
+                    ties = 0;
+                    $('#ties').text(ties);
+
+                    //turn draw card on
+                    enableDraw();
+
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error creating deck:', error);
+                }
+            });
+        }
+
+
+
+        function drawCard() {
+            if (!deckId) {
+                console.error('Deck not created yet!');
+                return;
+            }
+            $.ajax({
+                url: 'https://deckofcardsapi.com/api/deck/' + deckId + '/draw/?count=2',
+                method: 'GET',
+                success: function (response) {
+                    //pull card
+                    const card1 = response.cards[0];
+                    const card2 = response.cards[1];
+
+                    // Get a reference to the image element
+                    let image1 = document.getElementById('p1CardImage');
+                    let image2 = document.getElementById('p2CardImage');
+
+                    // Set the new image URL
+                    image1.src = card1.image;
+
+                    image2.src = card2.image;
+
+
+
+
+                    let value1 = -1;
+                    const rank1 = card1.value; // Extract the rank from the card code
+
+                    if (rank1 == "JACK") {
+                        value1 = 11;
+                    }
+                    else if (rank1 == "QUEEN") {
+                        value1 = 12;
+                    }
+                    else if (rank1 == "KING") {
+                        value1 = 13;
+                    }
+                    else if (rank1 == "ACE") {
+                        value1 = 1;
+                    }
+                    else {
+                        value1 = parseInt(rank1); // Convert number cards to their numerical value
+                    }
+
+
+                    let value2 = -1;
+                    const rank2 = card2.value; // Extract the rank from the card code
+                    if (rank2 == "JACK") {
+                        value2 = 11;
+                    }
+                    else if (rank2 == "QUEEN") {
+                        value2 = 12;
+                    }
+                    else if (rank2 == "KING") {
+                        value2 = 13;
+                    }
+                    else if (rank2 == "ACE") {
+                        value2 = 1;
+                    }
+                    else {
+                        value2 = parseInt(rank2); // Convert number cards to their numerical value
+                    }
+
+
+                    //update wins/ties
+                    if (value1 > value2) {
+                        //id="p2Card"
+                        player1wins++;
+                        $('#p1Wins').text("Wins: " + player1wins);
+                        //update color
+                        document.getElementById('p1Card').style.backgroundColor = "green";
+                        document.getElementById('p2Card').style.backgroundColor = "lightgray";
+
+                    }
+                    else if (value1 < value2) {
+                        player2wins++;
+                        $('#p2Wins').text("Wins: " + player2wins);
+                        
+                        //update color
+                        document.getElementById('p1Card').style.backgroundColor = "lightgray";
+                        document.getElementById('p2Card').style.backgroundColor = "green";
+                    }
+                    else {
+                        ties++;
+                        $('#ties').text(ties);
+                        //update color
+                        document.getElementById('p1Card').style.backgroundColor = "yellow";
+                        document.getElementById('p2Card').style.backgroundColor = "yellow";
+                    };
+
+
+                    //update draws
+                    draws++;
+                    $('#drawPlayed').text(draws);
+
+
+                    //update Card count
+                    cardCount = cardCount - 2;
+                    $('#cardsRemaining').text(cardCount);
+
+                    //turn off draw if out of cards
+                    if (cardCount == 0) {
+                        $('#drawPlayed').text("Made it!");
+                        disableDraw();
+
+                        document.getElementById('drawPlayed').classList.add("disabled");
+                    }
+
+
+
+
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error drawing card:', error);
+                }
+            });
+        }
+
+
+    </script>
+</body>
+
+</html>
